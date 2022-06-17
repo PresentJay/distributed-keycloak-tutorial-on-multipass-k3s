@@ -5,6 +5,11 @@
 # prerequisite
 - multipass
 - kubectl, helm
+- bash (or sh)
+# QuickStart
+
+1. `bash scripts/cluster.sh -i`
+2. 
 
 # cluster configuration & test suites
 - 3 nodes : scaling nodes suite
