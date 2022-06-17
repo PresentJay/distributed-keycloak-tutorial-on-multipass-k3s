@@ -10,7 +10,7 @@ checkPrerequisite multipass
 checkPrerequisite kubectl
 
 # cluster management
-case $(checkOpt "iuh" $@) in
+case $(checkOpt iupr $@) in
     i | install)
         # .env에 정의한 cluster setup에 맞춰 노드 생성
         ITER=1
@@ -66,12 +66,36 @@ case $(checkOpt "iuh" $@) in
         # finalizer
         finalize cluster-install
     ;;
+    u | uninstall)
+        # .env에 정의한 cluster setup에 맞춰 노드 삭제
+        ITER=1
+        while [[ ${ITER} -le ${CLUSTER_NODE_AMOUNT} ]]; do
+            multipass delete node${ITER} -p &
+            ITER=$(( ITER-1 ))
+        done
+    ;;
+    p | pause)
+        # .env에 정의한 cluster setup에 맞춰 노드 stop
+        ITER=1
+        while [[ ${ITER} -le ${CLUSTER_NODE_AMOUNT} ]]; do
+            multipass stop node${ITER}
+            ITER=$(( ITER+1 ))
+        done
+    ;;
+    r | resume)
+        # .env에 정의한 cluster setup에 맞춰 노드 restart
+        ITER=1
+        while [[ ${ITER} -le ${CLUSTER_NODE_AMOUNT} ]]; do
+            multipass start node${ITER}
+            ITER=$(( ITER+1 ))
+        done
+    ;;
     h | help | ? | *)
         log_help_head "bash scripts/cluster.sh"
         log_help_content i install "install clusters"
+        log_help_content u uninstall "delete clusters"
+        log_help_content p pause "pause clusters"
+        log_help_content r resume "resume paused clusters"
         log_help_tail
     ;;
-    # u | uninstall)
-    #     # TODO 
-    # ;;
 esac

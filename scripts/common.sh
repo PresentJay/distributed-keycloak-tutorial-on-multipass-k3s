@@ -15,16 +15,16 @@ checkPrerequisite(){
 checkOpt(){
     checkDash=$1
     shift
-    while getopts ${checkDash}-: OPT; do
+    while getopts ${checkDash}h-: OPT; do
         if [ $OPT = "-" ]; then
             OPT=${OPTARG%%=*}
             OPTARG=${OPTARG#$OPT}
             OPTARG=${OPTARG#=}
         fi
         case $OPT in
+            *) echo $OPT ;;
             ?) eval "log_kill parameter-fault" ;;
         esac
-        echo $OPT
     done
 }
 
