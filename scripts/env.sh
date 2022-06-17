@@ -2,11 +2,13 @@
 
 ENV_LOC="config/.env"
 
-# Show env vars
-grep -v '^#' ${ENV_LOC}
+# get env vars
+envList=$(grep -v '^#' ${ENV_LOC} | xargs)
 
 # Export env vars
-export $(grep -v '^#' ${ENV_LOC} | xargs)
+for ITER in ${envList}; do
+    export ${ITER}
+done
 
 #################
 # .env example
@@ -16,6 +18,7 @@ export $(grep -v '^#' ${ENV_LOC} | xargs)
 # CLUSTER_CPU_CAPACITY=2
 # CLUSTER_MEM_CAPACITY=2
 # CLUSTER_DISK_AMOUNT=32
+# CLUSTER_UBUNTU_VERSION=21.10
 
 # ## kubernetes
 # K3S_VERSION="v1.20.15+k3s1"
