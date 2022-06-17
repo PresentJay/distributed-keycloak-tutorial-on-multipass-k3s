@@ -2,9 +2,19 @@
 
 # Author: PresentJay (정현재, presentj94@gmail.com)
 
+case $(uname -s) in
+    "Darwin"* | "Linux"*) export _OS_="linux" ;;
+    "MINGW32"* | "MINGW64"* | "CYGWIN" ) export _OS_="windows" ;;
+    *) log_kill "this OS($(uname -s)) is not supported yet." ;;
+esac
+
+#########################
+#### Check Functions ####
+#########################
+
 # param $1: command 동작을 확인하려는 대상
 # example $1: "multipass", "kubectl", ...
-checkPrerequisite(){
+checkPrerequisite() {
     silentRun=$($1 | grep "command not found: $1") && log_kill "$1 unavailable"
     unset silentRun
 }
@@ -12,7 +22,7 @@ checkPrerequisite(){
 
 # param $1: dash-param 인자에 대해서 공백 없이, one character
 # example $1: "ie", "a", "iu" ...
-checkOpt(){
+checkOpt() {
     checkDash=$1
     shift
     while getopts ${checkDash}h-: OPT; do
@@ -30,11 +40,13 @@ checkOpt(){
 
 # param $1: exist check하려는 env name (Upper-case)
 # example $1: "ITER"
-checkEnv(){
+checkEnv() {
     [[ -n $(printenv | grep $1) ]] && log_test "$1 is exist" || log_test "$1 is not exist"
 }
 
-### 로그코드 ###
+#######################
+#### Log Functions ####
+#######################
 
 log_kill() {
     echo >&2 "[ERROR] $@" && exit 1
@@ -84,7 +96,9 @@ log_help_tail() {
     exit 1
 }
 
-### 로그코드 끝 ###
+################################
+#### Optimization Functions ####
+################################
 
 finalize() {
     case $1 in
@@ -93,6 +107,43 @@ finalize() {
             unset K3S_URL
             unset K3S_URL_FULL
             unset K3S_TOKEN
+        ;;
+    esac
+}
+
+cleanUp() {
+    case $_OS_ in
+        linux)
+            if [[ -e longhorn.sh ]]; then
+                echo -n "[DELETE] "
+                rm -v longhorn.sh 
+            fi
+
+            if [[ -e k8s.sh ]]; then
+                echo -n "[DELETE] "
+                rm -v k8s.sh
+            fi
+
+            if [[ -e /usr/local/bin/longhorn ]]; then
+                echo -n "[DELETE] "
+                rm -v /usr/local/bin/longhorn
+            fi
+
+            if [[ -e /usr/local/bin/k8s ]]; then
+                echo -n "[DELETE] "
+                rm -v /usr/local/bin/k8s
+            fi
+        ;;
+        window)
+            if [[ -e longhorn.bat ]]; then
+                echo -n "[DELETE] "
+                rm -v longhorn.bat 
+            fi
+
+            if [[ -e k8s.bat ]]; then
+                echo -n "[DELETE] "
+                rm -v k8s.bat
+            fi
         ;;
     esac
 }

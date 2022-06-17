@@ -49,8 +49,6 @@ case $(checkOpt iupr $@) in
                 K3S_TOKEN=$(multipass exec node1 -- bash -c "sudo cat /var/lib/rancher/k3s/server/node-token")
                 K3S_URL=$(multipass info node1 | grep IPv4 | awk '{print $2}')
                 K3S_URL_FULL="https://${K3S_URL}:6443"
-
-                multipass exec node1 sudo cat /etc/rancher/k3s/k3s.yaml > config/kubeconfig.yaml
             else
                 # Worker node : k3s 설치 (Master Node에 대해 K3S_TOKEN을 통한 인증)
                 multipass exec node${ITER} -- bash -c "curl -sfL: https://get.k3s.io | \
@@ -58,10 +56,23 @@ case $(checkOpt iupr $@) in
             fi
             
             success "node${ITER} is set for k3s"
-            sed -i '' "s/127.0.0.1/${K3S_URL}/" config/kubeconfig.yaml
-
             ITER=$(( ITER+1 ))
         done
+        case $_OS_ in
+            "linux")
+                multipass exec node1 sudo cat /etc/rancher/k3s/k3s.yaml > ${KUBECONFIG_LOC}
+                sed -i '' "s/127.0.0.1/${K3S_URL}/" ${KUBECONFIG_LOC}
+            ;;
+            "windows")
+                multipass exec node1 -- bash -c "sudo cat /etc/rancher/k3s/k3s.yaml" > ${KUBECONFIG_LOC}
+                sed -i "s/127.0.0.1/${K3S_URL}/" ${KUBECONFIG_LOC}
+            ;;
+        esac
+
+        ### helm의 config permission error 제거 ###
+        chmod o-r config/kubeconfig.yaml
+        chmod g-r config/kubeconfig.yaml
+
 
         # finalizer
         finalize cluster-install
