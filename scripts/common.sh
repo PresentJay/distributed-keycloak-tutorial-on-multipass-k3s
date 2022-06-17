@@ -108,42 +108,41 @@ finalize() {
             unset K3S_URL_FULL
             unset K3S_TOKEN
         ;;
-    esac
-}
+        cluster-uninstall)
+            case $_OS_ in
+                linux)
+                    if [[ -e longhorn.sh ]]; then
+                        echo -n "[DELETE] "
+                        rm -v longhorn.sh 
+                    fi
 
-cleanUp() {
-    case $_OS_ in
-        linux)
-            if [[ -e longhorn.sh ]]; then
-                echo -n "[DELETE] "
-                rm -v longhorn.sh 
-            fi
+                    if [[ -e k8s.sh ]]; then
+                        echo -n "[DELETE] "
+                        rm -v k8s.sh
+                    fi
 
-            if [[ -e k8s.sh ]]; then
-                echo -n "[DELETE] "
-                rm -v k8s.sh
-            fi
+                    if [[ -e /usr/local/bin/longhorn ]]; then
+                        echo -n "[DELETE] "
+                        rm -v /usr/local/bin/longhorn
+                    fi
 
-            if [[ -e /usr/local/bin/longhorn ]]; then
-                echo -n "[DELETE] "
-                rm -v /usr/local/bin/longhorn
-            fi
+                    if [[ -e /usr/local/bin/k8s ]]; then
+                        echo -n "[DELETE] "
+                        rm -v /usr/local/bin/k8s
+                    fi
+                ;;
+                window)
+                    if [[ -e longhorn.bat ]]; then
+                        echo -n "[DELETE] "
+                        rm -v longhorn.bat 
+                    fi
 
-            if [[ -e /usr/local/bin/k8s ]]; then
-                echo -n "[DELETE] "
-                rm -v /usr/local/bin/k8s
-            fi
-        ;;
-        window)
-            if [[ -e longhorn.bat ]]; then
-                echo -n "[DELETE] "
-                rm -v longhorn.bat 
-            fi
-
-            if [[ -e k8s.bat ]]; then
-                echo -n "[DELETE] "
-                rm -v k8s.bat
-            fi
+                    if [[ -e k8s.bat ]]; then
+                        echo -n "[DELETE] "
+                        rm -v k8s.bat
+                    fi
+                ;;
+            esac
         ;;
     esac
 }

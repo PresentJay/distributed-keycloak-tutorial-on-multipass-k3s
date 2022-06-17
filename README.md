@@ -5,11 +5,13 @@
 # prerequisite
 - multipass
 - kubectl, helm
-- bash (or sh)
+
 # QuickStart
 
-1. `bash scripts/cluster.sh -i`
-2. 
+check help messages: `scripts/cluster.sh`, `scripts/registry.sh`
+
+1. `scripts/cluster.sh --install`
+2. `scripts/registry.sh --bootstrap`
 
 # cluster configuration & test suites
 - 3 nodes : scaling nodes suite
@@ -24,7 +26,7 @@
 - mac
 
 # References
-- [ ]  
+- [ ] https://www.keycloak.org/guides#server
 
 # TODOs
 - [ ] importing/exporting realm

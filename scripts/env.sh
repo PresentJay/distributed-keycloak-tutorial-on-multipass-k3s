@@ -1,5 +1,7 @@
 #!/bin/bash
 
+# Author: PresentJay (정현재, presentj94@gmail.com)
+
 ENV_LOC="config/.env"
 
 # get env vars

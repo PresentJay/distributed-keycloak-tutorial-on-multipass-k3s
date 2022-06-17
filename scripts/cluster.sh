@@ -60,19 +60,18 @@ case $(checkOpt iupr $@) in
         done
         case $_OS_ in
             "linux")
-                multipass exec node1 sudo cat /etc/rancher/k3s/k3s.yaml > ${KUBECONFIG_LOC}
-                sed -i '' "s/127.0.0.1/${K3S_URL}/" ${KUBECONFIG_LOC}
+                multipass exec node1 sudo cat /etc/rancher/k3s/k3s.yaml > ${KUBECONFIG}
+                sed -i '' "s/127.0.0.1/${K3S_URL}/" ${KUBECONFIG}
             ;;
             "windows")
-                multipass exec node1 -- bash -c "sudo cat /etc/rancher/k3s/k3s.yaml" > ${KUBECONFIG_LOC}
-                sed -i "s/127.0.0.1/${K3S_URL}/" ${KUBECONFIG_LOC}
+                multipass exec node1 -- bash -c "sudo cat /etc/rancher/k3s/k3s.yaml" > ${KUBECONFIG}
+                sed -i "s/127.0.0.1/${K3S_URL}/" ${KUBECONFIG}
             ;;
         esac
 
         ### helm의 config permission error 제거 ###
         chmod o-r config/kubeconfig.yaml
         chmod g-r config/kubeconfig.yaml
-
 
         # finalizer
         finalize cluster-install
@@ -102,9 +101,9 @@ case $(checkOpt iupr $@) in
         done
     ;;
     h | help | ? | *)
-        log_help_head "bash scripts/cluster.sh"
+        log_help_head "scripts/cluster.sh"
         log_help_content i install "install clusters"
-        log_help_content u uninstall "delete clusters"
+        log_help_content u uninstall "uninstall clusters"
         log_help_content p pause "pause clusters"
         log_help_content r resume "resume paused clusters"
         log_help_tail
