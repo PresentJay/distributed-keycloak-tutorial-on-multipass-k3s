@@ -15,6 +15,8 @@ case $(checkOpt iub $@) in
         scripts/registry.sh -i ingress-nginx
         scripts/registry.sh -i longhorn
         scripts/registry.sh -i k8s-dashboard
+        log_info "please run scripts/registry.sh --set-ingress k8s-dashboard after k8s-dashboard is fully installed."
+        log_info "please run scripts/registry.sh --set-ingress longhorn after longhorn is fully installed."
     ;;
     i | install)
         case $2 in
@@ -84,10 +86,144 @@ case $(checkOpt iub $@) in
             ;;
         esac
     ;;
+    set-ingress)
+        LOCAL_ADDRESS=$(kubectl config view -o jsonpath="{.clusters[0].cluster.server}" | cut -d"/" -f3 | cut -d":" -f1)
+
+        if [[ ${PREFER_PROTOCOL}="https" ]]; then
+            PORT=$(kubectl get svc ingress-nginx-controller -n ingress-nginx -o jsonpath="{.spec.ports[1].nodePort}")
+        elif [[ ${PREFER_PROTOCOL}="http" ]]; then
+            PORT=$(kubectl get svc ingress-nginx-controller -n ingress-nginx -o jsonpath="{.spec.ports[0].nodePort}")
+        else
+            kill "PREFER_PROTOCOL env error: please check your config/.env"
+        fi
+
+        case $_OS_ in
+            linux)
+                RUN="open"
+                EXP="sh"
+            ;;
+            windows)
+                RUN="start"
+                EXP="bat"
+            ;;
+        esac
+
+        case $2 in
+            longhorn)
+                cat <<EOF | kubectl apply -f -
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: longhorn-ui-ingress
+  namespace: longhorn-system
+  annotations:
+    kubernetes.io/ingress.class: nginx
+spec:
+  rules:
+    - host: dashboard.longhorn.${LOCAL_ADDRESS}.nip.io
+      http:
+        paths:
+          - pathType: ImplementationSpecific
+            backend:
+              service:
+                name: longhorn-frontend
+                port:
+                  name: http
+EOF
+                [ -e longhorn.${EXP} ] && rm longhorn.${EXP}
+
+                DEST="${PREFER_PROTOCOL}://dashboard.longhorn.${LOCAL_ADDRESS}.nip.io:${PORT}"
+
+                if [[ ! -e longhorn.${EXP} ]]; then
+                    cat << EOF > longhorn.${EXP}
+#!/bin/bash
+echo "${DEST}"
+${RUN} ${DEST}
+EOF
+                fi
+
+                chmod +x longhorn.${EXP}
+                chmod 777 longhorn.${EXP}
+
+                [[ ${OS_name} -eq "linux" ]] && cp longhorn.${EXP} /usr/local/bin/longhorn
+            ;;
+            k8s-dashboard)
+                cat <<EOF | kubectl apply -f -
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: kubernetes-dashboard
+  namespace: kubernetes-dashboard
+  annotations:
+    kubernetes.io/ingress.class: nginx
+    cert-manager.io/cluster-issuer: letsencrypt-staging
+    nginx.ingress.kubernetes.io/backend-protocol: HTTPS
+spec:
+  tls:
+    - hosts:
+        - dashboard.k8s.${LOCAL_ADDRESS}.nip.io
+  rules:
+    - host: dashboard.k8s.${LOCAL_ADDRESS}.nip.io
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: kubernetes-dashboard
+                port:
+                  number: 443
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: admin-user
+  namespace: kubernetes-dashboard
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: admin-user
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: cluster-admin
+subjects:
+  - kind: ServiceAccount
+    name: admin-user
+    namespace: kubernetes-dashboard
+---
+EOF
+                sleep 20
+                DEST="${PREFER_PROTOCOL}://dashboard.k8s.${LOCAL_ADDRESS}.nip.io:${PORT}"
+                KUBEBOARD_SECRETNAME=$(kubectl -n kubernetes-dashboard get sa/admin-user -o jsonpath="{.secrets[0].name}")
+                KUBEBOARD_TOKEN=$(kubectl get secret ${KUBEBOARD_SECRETNAME} -n kubernetes-dashboard -o go-template="{{.data.token | base64decode}}")
+                cat > k8s.${EXP} << EOF
+#!/bin/bash
+KUBEBOARD_TOKEN="${KUBEBOARD_TOKEN}"
+echo "[URL]"
+echo "${DEST}"
+echo "[TOKEN]"
+echo "${KUBEBOARD_TOKEN}"
+${RUN} ${DEST}
+EOF
+
+                chmod +x k8s.${EXP}
+                chmod 777 k8s.${EXP}
+
+                [[ ${OS_name} -eq "linux" ]] && cp k8s.${EXP} /usr/local/bin/k8s
+            ;;
+            h | help | ? | *)
+                log_kill "supporting ingresses: [longhorn], [k8s-dashboard]"
+                scripts/registry.sh --help
+            ;;
+        esac
+    ;;
     h | help | ? | *)
         log_help_head "scripts/registry.sh"
         log_help_content i install "install registry"
         log_help_content u uninstall "uninstall registry"
+        log_help_content set-ingress "set ingress of pod"
         log_help_tail
     ;;
 esac
