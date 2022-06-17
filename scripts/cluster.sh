@@ -10,7 +10,7 @@ checkPrerequisite multipass
 checkPrerequisite kubectl
 
 # cluster management
-case $(checkOpt "iu" $@) in
+case $(checkOpt "iuh" $@) in
     i | install)
         # .env에 정의한 cluster setup에 맞춰 노드 생성
         ITER=1
@@ -25,7 +25,6 @@ case $(checkOpt "iu" $@) in
             # 각 노드별 필수 유틸리티 설치 (nfs, iscsi : virtual storage 위한 설치)
             multipass exec node${ITER} -- sudo apt-get update -y 
             multipass exec node${ITER} -- sudo apt-get install nfs-common open-iscsi nfs-kernel-server -y
-            
 
             ITER=$(( ITER+1 ))
         done
@@ -66,10 +65,11 @@ case $(checkOpt "iu" $@) in
 
         # finalizer
         finalize cluster-install
-
-        # check finalize-done
-        checkEnv ITER
-        checkEnv K3S_URL
+    ;;
+    h | help | ? | *)
+        log_help_head "bash scripts/cluster.sh"
+        log_help_content i install "install clusters"
+        log_help_tail
     ;;
     # u | uninstall)
     #     # TODO 

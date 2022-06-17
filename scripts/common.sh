@@ -14,15 +14,18 @@ checkPrerequisite(){
 # example $1: "ie", "a", "iu" ...
 checkOpt(){
     checkDash=$1
-    shift $(( OPTIND - 1 ))
-    while getopts ${checkDash}: OPT; do
+    shift
+    while getopts ${checkDash}-: OPT; do
         if [ $OPT = "-" ]; then
             OPT=${OPTARG%%=*}
             OPTARG=${OPTARG#$OPT}
             OPTARG=${OPTARG#=}
         fi
+        case $OPT in
+            ?) eval "log_kill parameter-fault" ;;
+        esac
+        echo $OPT
     done
-    echo $OPT
 }
 
 # param $1: exist check하려는 env name (Upper-case)
@@ -47,6 +50,38 @@ log_success() {
 
 log_test() {
     echo "[TEST] $@"
+}
+
+log_help_head() {
+    echo -e "\n$1 [Options ...]"
+    log_help_content h help "print help messages"
+}
+
+log_help_content() {
+    if [[ $# -gt 2 ]]; then
+        param_cnt=1
+        echo -en "\t["
+        while (($param_cnt<$#)); do
+            case ${param_cnt} in
+                1)
+                    echo -n "-"
+                    echo -n "${!param_cnt}"
+                ;;
+                *)
+                    echo -n ", --${!param_cnt}"
+                ;;
+            esac
+            param_cnt=$((${param_cnt}+1))
+        done
+        echo -e "]: ${!param_cnt}"
+    elif [[ $# -eq 2 ]]; then
+        echo -e "\t[--$1]: $2"
+    fi
+}
+
+log_help_tail() {
+    echo -e "\n"
+    exit 1
 }
 
 ### 로그코드 끝 ###
