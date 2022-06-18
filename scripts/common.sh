@@ -146,3 +146,77 @@ finalize() {
         ;;
     esac
 }
+
+##############################
+#### Kubernetes Functions ####
+##############################
+
+# $1: object type
+# $2: object name
+# $3: namespace (optional)
+delete_sequence() {
+    if [[ $# -eq 2 ]]; then
+        if [[ -n $(kubectl get $1 --all-namespaces | grep $2) ]]; then
+            check_status $1 $2 Terminating &
+            kubectl delete $1 $2 \
+                && wait \
+                && log_info "[$1]$2 is deleted completely."
+        else
+            log_info "[$1]$2 is not exist"
+        fi
+    elif [[ $# -eq 3 ]]; then
+        if [[ -n $(kubectl get $1 -n $3 | grep $2) ]]; then
+            check_status $1 $2 Terminating $3 &
+            kubectl delete $1 $2 $3 \
+                && wait \
+                && log_info "[$1]$2 in $3 is deleted completely."
+        else
+            log_info "[$1]$2 in $3 is not exist"
+        fi
+    fi
+}
+
+# $1: type of kubernetes resource
+# $2: name of kubernetes resource
+# $3: target state
+# $4: namespace (optional)
+check_status() {
+    ITER=0
+    while :
+    do
+        ITER=$(( ITER+1 ))
+        if [[ -n $(kubectl get $1 --all-namespaces | grep $2) ]]; then
+            case $1 in
+                configmap)
+                    if [[ $# -gt 3 ]]; then
+                        [[ -n $(kubectl get $1 -n $4 | grep $2) ]] \
+                            && state="Running" \
+                            || state="Terminating"
+                    else
+                        [[ -n $(kubectl get $1 | grep $2) ]] \
+                            && state="Running" \
+                            || state="Terminating"
+                    fi
+                ;;
+                *)
+                    if [[ $# -gt 3 ]]; then
+                        state=$(kubectl get $1 -n $4 | grep $2 | awk '{print $3}')
+                    else
+                        state=$(kubectl get $1 | grep $2 | awk '{print $3}')
+                    fi
+                ;;
+            esac
+            if [[ ${state} = $3 ]]; then
+                info "'$1/$2' is now [${state}] state."
+                return ${TRUE}
+            fi
+            echo "Waiting for '$1/$2' state: [${state}] => to be [$3] (${ITER}/${ITERATION_LIMIT} trials)"
+            sleep ${ITERATION_LATENCY};
+            if [ ${ITER} -ge ${ITERATION_LIMIT} ]; then
+                kill "command iteration is close to limit > exit. (${ITER}/${ITERATION_LIMIT} failed)"
+            fi
+        else
+            return ${FALSE}
+        fi;
+    done
+}
