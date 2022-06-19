@@ -5,10 +5,11 @@ metadata:
 spec:
   selector:
     app: keycloak-app
+  type: NodePort
   ports:
   - protocol: TCP
-    port: 8443
-    targetPort: 8443
+    port: 8080
+    targetPort: 8080
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -34,12 +35,18 @@ spec:
           imagePullPolicy: "IfNotPresent"
           ports:
             - protocol: TCP
-              containerPort: 8443
+              containerPort: 8080
           readinessProbe:
             httpGet:
               path: /health/ready
-              port: 8443
-              scheme: HTTPS
+              port: 8080
+              scheme: HTTP
+          env:
+            - name: JAVA_OPTS
+              value: "-Xms512m -Xmx2048m -XX:MetaspaceSize=96M -XX:MaxMetaspaceSize=256m -Djava.net.preferIPv4Stack=true -Dfile.encoding=UTF-8"
+            - name: KC_HTTP_ENABLED
+              value: "true"
+            
           envFrom:
             - configMapRef:
                 name: keycloak-config

@@ -39,8 +39,38 @@ case $(checkOpt iublx $@) in
                 kubectl apply -f objects/keycloak.yaml
                 scripts/keycloak.sh --watch standalone
             ;;
+            ingress)
+                LOCAL_ADDRESS=$(kubectl config view -o jsonpath="{.clusters[0].cluster.server}" | cut -d"/" -f3 | cut -d":" -f1)
+                cat <<EOF | kubectl apply -f -
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: keycloak-app
+  annotations:
+    kubernetes.io/ingress.class: "nginx"
+spec:
+  rules:
+    - host: keycloak.${LOCAL_ADDRESS}.nip.io
+      http:
+        paths:
+        - path: /
+          pathType: Prefix
+          backend:
+            service:
+              name: keycloak-app
+              port:
+                number: 8080
+        - path: /auth
+          pathType: Prefix
+          backend:
+            service:
+              name: keycloak-app
+              port:
+                number: 8080
+EOF
+            ;;
             h | help | ? | *)
-                logKill "supporting installations: [config, postgresql, standalone]"
+                logKill "supporting installations: [config, postgresql, standalone, ingress]"
                 scripts/keycloak.sh --help
             ;;
         esac
@@ -67,8 +97,11 @@ case $(checkOpt iublx $@) in
                 find=$(getObjectNameByAppname pod keycloak-app) && \
                     deleteSequence pod ${find}
             ;;
+            ingress)
+                deleteSequence ingress keycloak-app
+            ;;
             h | help | ? | *)
-                logKill "supporting uninstallations: [config, postgresql, standalone]"
+                logKill "supporting uninstallations: [config, postgresql, standalone, ingress]"
                 scripts/keycloak.sh --help
             ;;
         esac
@@ -132,11 +165,42 @@ case $(checkOpt iublx $@) in
             ;;
         esac
     ;;
-    set-ingress)
+    open)
+        if [[ ${PREFER_PROTOCOL}="http" ]]; then
+            IS_HTTPS=$FALSE
+        elif [[ ${PREFER_PROTOCOL}="https" ]]; then
+            IS_HTTPS=$TRUE
+        fi
+        PORT=$(kubectl get svc -n ingress-nginx ingress-nginx-controller -o jsonpath="{.spec.ports[$IS_HTTPS].nodePort}")
+        LOCAL_ADDRESS=$(kubectl config view -o jsonpath="{.clusters[0].cluster.server}" | cut -d"/" -f3 | cut -d":" -f1)
+        [[ -z ${PORT} ]] && logKill "${PORT} can't find ingress port"
+
+        case $_OS_ in
+            linux) RUN="open" ;;
+            windows) RUN="start" ;;
+        esac
+
         case $2 in
-            # TODO
+            db | postgres | postgresql)
+                NODEPORT=$(kubectl get svc keycloak-postgresql -o jsonpath="{.spec.ports[0].nodePort}")
+                echo -e "\t[ACCESS-HOST]: ${LOCAL_ADDRESS}"
+                echo -e "\t[ACCESS-PORT]: ${NODEPORT}"
+            ;;
+            standalone)
+                PORT=$(kubectl get svc -n ingress-nginx ingress-nginx-controller -o jsonpath="{.spec.ports[0].nodePort}")
+                NODEPORT=$(kubectl get svc keycloak-app -o jsonpath="{.spec.ports[0].nodePort}")
+                PREFER_PROTOCOL="http"
+                if [[ -n $(kubectl get ingress keycloak-app) ]]; then
+                    URL=$(kubectl get ingress keycloak-app | grep keycloak-app | awk '{print $3}')
+                    echo "${PREFER_PROTOCOL}://${URL}:${NODEPORT}"
+                    eval "${RUN} ${PREFER_PROTOCOL}://${URL}:${NODEPORT}"
+                else
+                    echo -e "${PREFER_PROTOCOL}://${LOCAL_ADDRESS}:${NODEPORT}"
+                    eval "${RUN} ${PREFER_PROTOCOL}://${LOCAL_ADDRESS}:${NODEPORT}"
+                fi
+            ;;
             h | help | ? | *)
-                logKill "supporting ingresses: ["
+                logKill "supporting open: [postgresql, standalone]"
                 scripts/keycloak.sh --help
             ;;
         esac
