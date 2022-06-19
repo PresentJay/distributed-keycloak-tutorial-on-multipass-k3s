@@ -5,7 +5,7 @@
 case $(uname -s) in
     "Darwin"* | "Linux"*) export _OS_="linux" ;;
     "MINGW32"* | "MINGW64"* | "CYGWIN" ) export _OS_="windows" ;;
-    *) log_kill "this OS($(uname -s)) is not supported yet." ;;
+    *) logKill "this OS($(uname -s)) is not supported yet." ;;
 esac
 
 #########################
@@ -15,7 +15,7 @@ esac
 # param $1: command 동작을 확인하려는 대상
 # example $1: "multipass", "kubectl", ...
 checkPrerequisite() {
-    silentRun=$($1 | grep "command not found: $1") && log_kill "$1 unavailable"
+    silentRun=$($1 | grep "command not found: $1") && logKill "$1 unavailable"
     unset silentRun
 }
 
@@ -33,7 +33,7 @@ checkOpt() {
         fi
         case $OPT in
             *) echo $OPT ;;
-            ?) eval "log_kill parameter-fault" ;;
+            ?) eval "logKill parameter-fault" ;;
         esac
     done
 }
@@ -41,35 +41,35 @@ checkOpt() {
 # param $1: exist check하려는 env name (Upper-case)
 # example $1: "ITER"
 checkEnv() {
-    [[ -n $(printenv | grep $1) ]] && log_test "$1 is exist" || log_test "$1 is not exist"
+    [[ -n $(printenv | grep $1) ]] && logTest "$1 is exist" || logTest "$1 is not exist"
 }
 
 #######################
 #### Log Functions ####
 #######################
 
-log_kill() {
+logKill() {
     echo >&2 "[ERROR] $@" && exit 1
 }
 
-log_info() {
+logInfo() {
     echo "[INFO] $@"
 }
 
-log_success() {
+logSuccess() {
     echo "[SUCCESS] $@"
 }
 
-log_test() {
+logTest() {
     echo "[TEST] $@"
 }
 
-log_help_head() {
+logHelpHead() {
     echo -e "\n$1 [Options ...]"
-    log_help_content h help "print help messages"
+    logHelpContent h help "print help messages"
 }
 
-log_help_content() {
+logHelpContent() {
     if [[ $# -gt 2 ]]; then
         param_cnt=1
         echo -en "\t["
@@ -91,7 +91,7 @@ log_help_content() {
     fi
 }
 
-log_help_tail() {
+logHelpTail() {
     echo -e "\n"
     exit 1
 }
@@ -154,22 +154,22 @@ finalize() {
 # $1: object type
 # $2: object name
 # $3: namespace (optional)
-delete_sequence() {
+deleteSequence() {
     if [[ $# -eq 2 ]]; then
         if [[ -n $(kubectl get $1 --all-namespaces | grep $2) ]]; then
             kubectl delete $1 $2 \
-                && check_status $1 $2 Terminating \
-                && log_info "[$1]$2 is deleted completely."
+                && checkStatus $1 $2 Terminating \
+                && logInfo "[$1]$2 is deleted completely."
         else
-            log_info "[$1]$2 is not exist"
+            logInfo "[$1]$2 is not exist"
         fi
     elif [[ $# -eq 3 ]]; then
         if [[ -n $(kubectl get $1 -n $3 | grep $2) ]]; then
             kubectl delete $1 $2 $3 \
-                && check_status $1 $2 Terminating $3 \
-                && log_info "[$1]$2 in $3 is deleted completely."
+                && checkStatus $1 $2 Terminating $3 \
+                && logInfo "[$1]$2 in $3 is deleted completely."
         else
-            log_info "[$1]$2 in $3 is not exist"
+            logInfo "[$1]$2 in $3 is not exist"
         fi
     fi
 }
@@ -178,7 +178,7 @@ delete_sequence() {
 # $2: name of kubernetes resource
 # $3: target state
 # $4: namespace (optional)
-check_status() {
+checkStatus() {
     ITER=0
     while :
     do
@@ -211,10 +211,25 @@ check_status() {
             echo "Waiting for '$1/$2' state: [${state}] => to be [$3] (${ITER}/${ITERATION_LIMIT} trials)"
             sleep ${ITERATION_LATENCY};
             if [ ${ITER} -ge ${ITERATION_LIMIT} ]; then
-                kill "command iteration is close to limit > exit. (${ITER}/${ITERATION_LIMIT} failed)"
+                logKill "command iteration is close to limit > exit. (${ITER}/${ITERATION_LIMIT} failed)"
             fi
         else
             return ${FALSE}
         fi;
     done
+}
+
+# $1 : appname
+# $2 : namespace (optional)
+getPodnameByAppname() {
+    if [[ $# -eq 2 ]]; then
+        result=$(kubectl get pod -n $2 -l app=$1 | grep $1 | awk '{print $1}')
+    elif [[ $# -eq 1 ]]; then
+        result=$(kubectl get pod -l app=$1 | grep $1 | awk '{print $1}')
+    fi
+    if [[ -n ${result} ]]; then
+        echo ${result}
+    else
+        logKill "can't find $1 pod."
+    fi
 }

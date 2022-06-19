@@ -43,7 +43,6 @@ spec:
           envFrom:
             - configMapRef:
                 name: keycloak-config
-          command: ["/bin/sh", "-c"]
           args:
             - |
-              kc.sh start-dev
+              start-dev

@@ -101,11 +101,11 @@ case $(checkOpt iupr $@) in
         done
     ;;
     h | help | ? | *)
-        log_help_head "scripts/cluster.sh"
-        log_help_content i install "install clusters"
-        log_help_content u uninstall "uninstall clusters"
-        log_help_content p pause "pause clusters"
-        log_help_content r resume "resume paused clusters"
-        log_help_tail
+        logHelpHead "scripts/cluster.sh"
+        logHelpContent i install "install clusters"
+        logHelpContent u uninstall "uninstall clusters"
+        logHelpContent p pause "pause clusters"
+        logHelpContent r resume "resume paused clusters"
+        logHelpTail
     ;;
 esac

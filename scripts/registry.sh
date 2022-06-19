@@ -15,8 +15,8 @@ case $(checkOpt iub $@) in
         scripts/registry.sh -i ingress-nginx
         scripts/registry.sh -i longhorn
         scripts/registry.sh -i k8s-dashboard
-        log_info "please run scripts/registry.sh --set-ingress k8s-dashboard after k8s-dashboard is fully installed."
-        log_info "please run scripts/registry.sh --set-ingress longhorn after longhorn is fully installed."
+        logInfo "please run scripts/registry.sh --set-ingress k8s-dashboard after k8s-dashboard is fully installed."
+        logInfo "please run scripts/registry.sh --set-ingress longhorn after longhorn is fully installed."
     ;;
     i | install)
         case $2 in
@@ -58,7 +58,7 @@ case $(checkOpt iub $@) in
                     --set=extraArgs="{--token-ttl=0}"
             ;;
             h | help | ? | *)
-                log_kill "supporting registries: [ingress-nginx], [longhorn], [k8s-dashboard]"
+                logKill "supporting registries: [ingress-nginx], [longhorn], [k8s-dashboard]"
                 scripts/registry.sh --help
             ;;
         esac
@@ -81,7 +81,7 @@ case $(checkOpt iub $@) in
                 kubectl delete namespace kubernetes-dashboard
             ;;
             h | help | ? | *)
-                log_kill "supporting registries: [ingress-nginx], [longhorn], [k8s-dashboard]"
+                logKill "supporting registries: [ingress-nginx], [longhorn], [k8s-dashboard]"
                 scripts/registry.sh --help
             ;;
         esac
@@ -94,7 +94,7 @@ case $(checkOpt iub $@) in
         elif [[ ${PREFER_PROTOCOL}="http" ]]; then
             PORT=$(kubectl get svc ingress-nginx-controller -n ingress-nginx -o jsonpath="{.spec.ports[0].nodePort}")
         else
-            kill "PREFER_PROTOCOL env error: please check your config/.env"
+            logKill "PREFER_PROTOCOL env error: please check your config/.env"
         fi
 
         case $_OS_ in
@@ -214,16 +214,16 @@ EOF
                 [[ ${OS_name} -eq "linux" ]] && cp k8s.${EXP} /usr/local/bin/k8s
             ;;
             h | help | ? | *)
-                log_kill "supporting ingresses: [longhorn], [k8s-dashboard]"
+                logKill "supporting ingresses: [longhorn], [k8s-dashboard]"
                 scripts/registry.sh --help
             ;;
         esac
     ;;
     h | help | ? | *)
-        log_help_head "scripts/registry.sh"
-        log_help_content i install "install registry"
-        log_help_content u uninstall "uninstall registry"
-        log_help_content set-ingress "set ingress of pod"
-        log_help_tail
+        logHelpHead "scripts/registry.sh"
+        logHelpContent i install "install registry"
+        logHelpContent u uninstall "uninstall registry"
+        logHelpContent set-ingress "set ingress of pod"
+        logHelpTail
     ;;
 esac

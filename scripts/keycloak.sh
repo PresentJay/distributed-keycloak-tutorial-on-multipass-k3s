@@ -10,7 +10,7 @@ checkPrerequisite helm
 checkPrerequisite kubectl
 
 # cluster management
-case $(checkOpt iub $@) in
+case $(checkOpt iubl $@) in
     b | bootstrap)
         # TODO
     ;;
@@ -39,7 +39,7 @@ case $(checkOpt iub $@) in
                 scripts/keycloak.sh --watch standalone
             ;;
             h | help | ? | *)
-                log_kill "supporting installations: [config, postgresql, standalone]"
+                logKill "supporting installations: [config, postgresql, standalone]"
                 scripts/keycloak.sh --help
             ;;
         esac
@@ -48,20 +48,20 @@ case $(checkOpt iub $@) in
         case $2 in
             # TODO
             config)
-                delete_sequence configmap keycloak-postgresql-config
-                delete_sequence configmap keycloak-config
+                deleteSequence configmap keycloak-postgresql-config
+                deleteSequence configmap keycloak-config
             ;;
             db | postgres | postgresql)
-                delete_sequence service keycloak-postgresql
-                delete_sequence statefulset keycloak-postgresql
-                delete_sequence pvc keycloak-postgresql-data
+                deleteSequence service keycloak-postgresql
+                deleteSequence statefulset keycloak-postgresql
+                deleteSequence pvc keycloak-postgresql-data
             ;;
             standalone)
-                delete_sequence service keycloak-app
-                delete_sequence deployment keycloak-app
+                deleteSequence service keycloak-app
+                deleteSequence deployment keycloak-app
             ;;
             h | help | ? | *)
-                log_kill "supporting uninstallations: [config, postgresql, standalone]"
+                logKill "supporting uninstallations: [config, postgresql, standalone]"
                 scripts/keycloak.sh --help
             ;;
         esac
@@ -73,18 +73,36 @@ case $(checkOpt iub $@) in
                 kubectl get configmap keycloak-config
             ;;
             db | postgres | postgresql)
-                log_info "if you want to pause watch, Run \"Ctrl+C\""
+                logInfo "if you want to pause watch, Run \"Ctrl+C\""
                 kubectl get service keycloak-postgresql
                 kubectl get pvc keycloak-postgresql-data
                 kubectl get statefulset keycloak-postgresql -w
             ;;
             standalone)
-                log_info "if you want to pause watch, Run \"Ctrl+C\""
+                logInfo "if you want to pause watch, Run \"Ctrl+C\""
                 kubectl get service keycloak-app
                 kubectl get deployment keycloak-app -w
             ;;
             h | help | ? | *)
-                log_kill "supporting watch: [config, postgresql, standalone]"
+                logKill "supporting watch: [config, postgresql, standalone]"
+                scripts/keycloak.sh --help
+            ;;
+        esac
+    ;;
+    l | log)
+        case $2 in
+            db | postgres | postgresql)
+                getPodnameByAppname keycloak-postgresql && \
+                    logInfo "if you want to pause watch, Run \"Ctrl+C\"" && \
+                    kubectl logs -f $(getPodnameByAppname keycloak-postgresql)
+            ;;
+            standalone)
+                getPodnameByAppname keycloak-app && \
+                    logInfo "if you want to pause watch, Run \"Ctrl+C\"" && \
+                    kubectl logs -f $(getPodnameByAppname keycloak-app)
+            ;;
+            h | help | ? | *)
+                logKill "supporting watch: [postgresql, standalone]"
                 scripts/keycloak.sh --help
             ;;
         esac
@@ -93,17 +111,18 @@ case $(checkOpt iub $@) in
         case $2 in
             # TODO
             h | help | ? | *)
-                log_kill "supporting ingresses: ["
+                logKill "supporting ingresses: ["
                 scripts/keycloak.sh --help
             ;;
         esac
     ;;
     h | help | ? | *)
-        log_help_head "scripts/keycloak.sh"
-        log_help_content i install "install keycloak"
-        log_help_content u uninstall "uninstall keycloak"
-        log_help_content set-ingress "set ingress of pod"
-        log_help_content watch "watch status of pod"
-        log_help_tail
+        logHelpHead "scripts/keycloak.sh"
+        logHelpContent i install "install keycloak"
+        logHelpContent u uninstall "uninstall keycloak"
+        logHelpContent l log "show log of keycloak"
+        logHelpContent set-ingress "set ingress of pod"
+        logHelpContent watch "watch status of pod"
+        logHelpTail
     ;;
 esac
