@@ -157,18 +157,16 @@ finalize() {
 delete_sequence() {
     if [[ $# -eq 2 ]]; then
         if [[ -n $(kubectl get $1 --all-namespaces | grep $2) ]]; then
-            check_status $1 $2 Terminating &
             kubectl delete $1 $2 \
-                && wait \
+                && check_status $1 $2 Terminating \
                 && log_info "[$1]$2 is deleted completely."
         else
             log_info "[$1]$2 is not exist"
         fi
     elif [[ $# -eq 3 ]]; then
         if [[ -n $(kubectl get $1 -n $3 | grep $2) ]]; then
-            check_status $1 $2 Terminating $3 &
             kubectl delete $1 $2 $3 \
-                && wait \
+                && check_status $1 $2 Terminating $3 \
                 && log_info "[$1]$2 in $3 is deleted completely."
         else
             log_info "[$1]$2 in $3 is not exist"
@@ -187,7 +185,7 @@ check_status() {
         ITER=$(( ITER+1 ))
         if [[ -n $(kubectl get $1 --all-namespaces | grep $2) ]]; then
             case $1 in
-                configmap)
+                configmap | pvc | svc | service)
                     if [[ $# -gt 3 ]]; then
                         [[ -n $(kubectl get $1 -n $4 | grep $2) ]] \
                             && state="Running" \

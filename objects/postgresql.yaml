@@ -1,7 +1,7 @@
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
-  name: keycloak-data
+  name: keycloak-postgresql-data
 spec:
   accessModes:
     - ReadWriteMany
@@ -74,5 +74,5 @@ spec:
       volumes:
       - name: keycloak-postgresql-data
         persistentVolumeClaim:
-          claimName: keycloak-data
+          claimName: keycloak-postgresql-data
           
