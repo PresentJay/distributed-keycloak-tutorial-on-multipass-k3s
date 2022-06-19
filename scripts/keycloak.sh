@@ -10,7 +10,7 @@ checkPrerequisite helm
 checkPrerequisite kubectl
 
 # cluster management
-case $(checkOpt iubl $@) in
+case $(checkOpt iublx $@) in
     b | bootstrap)
         # TODO
     ;;
@@ -27,6 +27,7 @@ case $(checkOpt iubl $@) in
                     --from-literal KC_DB_URL=${AUTH_KEYCLOAK_DB_URL} \
                     --from-literal KC_DB_USERNAME=${AUTH_KEYCLOAK_DB_USER} \
                     --from-literal KC_DB_PASSWORD=${AUTH_KEYCLOAK_DB_PASSWORD} \
+                    --from-literal KC_HEALTH_ENABLED=true \
                     --from-literal KEYCLOAK_ADMIN=${AUTH_KEYCLOAK_USER} \
                     --from-literal KEYCLOAK_ADMIN_PASSWORD=${AUTH_KEYCLOAK_PASSWORD}
             ;;
@@ -54,11 +55,17 @@ case $(checkOpt iubl $@) in
             db | postgres | postgresql)
                 deleteSequence service keycloak-postgresql
                 deleteSequence statefulset keycloak-postgresql
+                find=$(getObjectNameByAppname pod keycloak-postgresql) && \
+                    deleteSequence pod ${find}
+                find=$(getObjectNameByAppname replicaset keycloak-postgresql) && \
+                    deleteSequence replicaset ${find}
                 deleteSequence pvc keycloak-postgresql-data
             ;;
             standalone)
                 deleteSequence service keycloak-app
                 deleteSequence deployment keycloak-app
+                find=$(getObjectNameByAppname pod keycloak-app) && \
+                    deleteSequence pod ${find}
             ;;
             h | help | ? | *)
                 logKill "supporting uninstallations: [config, postgresql, standalone]"
@@ -92,14 +99,32 @@ case $(checkOpt iubl $@) in
     l | log)
         case $2 in
             db | postgres | postgresql)
-                getPodnameByAppname keycloak-postgresql && \
+                getObjectNameByAppname pod keycloak-postgresql && \
                     logInfo "if you want to pause watch, Run \"Ctrl+C\"" && \
-                    kubectl logs -f $(getPodnameByAppname keycloak-postgresql)
+                    kubectl logs -f $(getObjectNameByAppname pod keycloak-postgresql)
             ;;
             standalone)
-                getPodnameByAppname keycloak-app && \
+                getObjectNameByAppname pod keycloak-app && \
                     logInfo "if you want to pause watch, Run \"Ctrl+C\"" && \
-                    kubectl logs -f $(getPodnameByAppname keycloak-app)
+                    kubectl logs -f $(getObjectNameByAppname pod keycloak-app)
+            ;;
+            h | help | ? | *)
+                logKill "supporting watch: [postgresql, standalone]"
+                scripts/keycloak.sh --help
+            ;;
+        esac
+    ;;
+    x | exec)
+        case $2 in
+            db | postgres | postgresql)
+                getObjectNameByAppname pod keycloak-postgresql && \
+                    logInfo "if you want to pause watch, Run \"Ctrl+C\"" && \
+                    kubectl exec $(getObjectNameByAppname pod keycloak-postgresql) -it -- sh
+            ;;
+            standalone)
+                getObjectNameByAppname pod keycloak-app && \
+                    logInfo "if you want to pause watch, Run \"Ctrl+C\"" && \
+                    kubectl exec $(getObjectNameByAppname pod keycloak-app) -it -- sh
             ;;
             h | help | ? | *)
                 logKill "supporting watch: [postgresql, standalone]"

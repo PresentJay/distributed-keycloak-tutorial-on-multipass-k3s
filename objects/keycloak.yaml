@@ -37,12 +37,11 @@ spec:
               containerPort: 8443
           readinessProbe:
             httpGet:
-              path: /auth/realms/master
+              path: /health/ready
               port: 8443
               scheme: HTTPS
           envFrom:
             - configMapRef:
                 name: keycloak-config
           args:
-            - |
-              start-dev
+            - start-dev

@@ -219,17 +219,18 @@ checkStatus() {
     done
 }
 
-# $1 : appname
-# $2 : namespace (optional)
-getPodnameByAppname() {
-    if [[ $# -eq 2 ]]; then
-        result=$(kubectl get pod -n $2 -l app=$1 | grep $1 | awk '{print $1}')
-    elif [[ $# -eq 1 ]]; then
-        result=$(kubectl get pod -l app=$1 | grep $1 | awk '{print $1}')
+# $1 : object type
+# $2 : appname
+# $3 : namespace (optional)
+getObjectNameByAppname() {
+    if [[ $# -eq 3 ]]; then
+        result=$(kubectl get $1 -n $3 -l app=$2 | grep $2 | awk '{print $1}')
+    elif [[ $# -eq 2 ]]; then
+        result=$(kubectl get $1 -l app=$2 | grep $2 | awk '{print $1}')
     fi
     if [[ -n ${result} ]]; then
         echo ${result}
     else
-        logKill "can't find $1 pod."
+        logKill "can't find $1/$2"
     fi
 }
