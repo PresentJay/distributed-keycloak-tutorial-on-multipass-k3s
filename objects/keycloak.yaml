@@ -5,11 +5,10 @@ metadata:
 spec:
   selector:
     app: keycloak-app
-  type: NodePort
   ports:
   - protocol: TCP
-    port: 8080
-    targetPort: 8080
+    port: 8443
+    targetPort: 8443
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -35,20 +34,32 @@ spec:
           imagePullPolicy: "IfNotPresent"
           ports:
             - protocol: TCP
-              containerPort: 8080
+              containerPort: 8443
           readinessProbe:
             httpGet:
               path: /health/ready
-              port: 8080
-              scheme: HTTP
+              port: 8443
+              scheme: HTTPS
           env:
             - name: JAVA_OPTS
               value: "-Xms512m -Xmx2048m -XX:MetaspaceSize=96M -XX:MaxMetaspaceSize=256m -Djava.net.preferIPv4Stack=true -Dfile.encoding=UTF-8"
-            - name: KC_HTTP_ENABLED
-              value: "true"
-            
+            - name: KC_PROXY
+              value: edge
           envFrom:
             - configMapRef:
                 name: keycloak-config
+          workingDir: /opt/keycloak
+          command: ["/bin/sh", "-c"]
           args:
-            - start-dev
+            - |
+              bin/kc.sh start --auto-build --hostname=keycloak.192.168.64.8.nip.io \
+                --https-certificate-file=/auth/keycloak-crt.pem \
+                --https-certificate-key-file=/auth/keycloak-key.pem
+          volumeMounts:
+            - mountPath: /auth
+              name: keycloak-app
+              subPath: auth
+      volumes:
+      - name: keycloak-app
+        persistentVolumeClaim:
+          claimName: keycloak-app

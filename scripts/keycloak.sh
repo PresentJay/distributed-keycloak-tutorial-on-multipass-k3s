@@ -32,12 +32,23 @@ case $(checkOpt iublx $@) in
                     --from-literal KEYCLOAK_ADMIN_PASSWORD=${AUTH_KEYCLOAK_PASSWORD}
             ;;
             db | postgres | postgresql)
+                createPVC keycloak-postgresql longhorn 5
+                createCertPem keycloak.*.nip.io keycloak
+                createPVC keycloak-app longhorn 5
                 kubectl apply -f objects/postgresql.yaml
-                scripts/keycloak.sh --watch db
+                sleep 8
+                find=$(getObjectNameByAppname pod keycloak-postgresql) && \
+                    checkStatus pod ${find} Running && \
+                    kubectl cp config/cert-crt-keycloak.pem ${find}:/auth/keycloak-crt.pem && \
+                    kubectl cp config/cert-key-keycloak.pem ${find}:/auth/keycloak-key.pem && \
+                    rm /config/cert-crt-keycloak.pem
+                    rm /config/cert-key-keycloak.pem
             ;;
             standalone)
                 kubectl apply -f objects/keycloak.yaml
-                scripts/keycloak.sh --watch standalone
+                sleep 8
+                find=$(getObjectNameByAppname pod keycloak-app) && \
+                    scripts/keycloak.sh -l standalone
             ;;
             ingress)
                 LOCAL_ADDRESS=$(kubectl config view -o jsonpath="{.clusters[0].cluster.server}" | cut -d"/" -f3 | cut -d":" -f1)
@@ -47,8 +58,15 @@ kind: Ingress
 metadata:
   name: keycloak-app
   annotations:
+    kubernetes.io/tls-acme: "true"
     kubernetes.io/ingress.class: "nginx"
+    ingress.kubernetes.io/force-ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/backend-protocol: "HTTPS"
+    nginx.ingress.kubernetes.io/proxy-buffer-size: "12k"
 spec:
+  tls:
+    - hosts:
+      - keycloak.${LOCAL_ADDRESS}.nip.io
   rules:
     - host: keycloak.${LOCAL_ADDRESS}.nip.io
       http:
@@ -59,14 +77,14 @@ spec:
             service:
               name: keycloak-app
               port:
-                number: 8080
+                number: 8443
         - path: /auth
           pathType: Prefix
           backend:
             service:
               name: keycloak-app
               port:
-                number: 8080
+                number: 8443
 EOF
             ;;
             h | help | ? | *)
@@ -89,7 +107,8 @@ EOF
                     deleteSequence pod ${find}
                 find=$(getObjectNameByAppname replicaset keycloak-postgresql) && \
                     deleteSequence replicaset ${find}
-                deleteSequence pvc keycloak-postgresql-data
+                deleteSequence pvc keycloak-postgresql
+                deleteSequence pvc keycloak-app
             ;;
             standalone)
                 deleteSequence service keycloak-app
@@ -115,7 +134,7 @@ EOF
             db | postgres | postgresql)
                 logInfo "if you want to pause watch, Run \"Ctrl+C\""
                 kubectl get service keycloak-postgresql
-                kubectl get pvc keycloak-postgresql-data
+                kubectl get pvc keycloak-postgresql
                 kubectl get statefulset keycloak-postgresql -w
             ;;
             standalone)
@@ -187,21 +206,43 @@ EOF
                 echo -e "\t[ACCESS-PORT]: ${NODEPORT}"
             ;;
             standalone)
-                PORT=$(kubectl get svc -n ingress-nginx ingress-nginx-controller -o jsonpath="{.spec.ports[0].nodePort}")
-                NODEPORT=$(kubectl get svc keycloak-app -o jsonpath="{.spec.ports[0].nodePort}")
-                PREFER_PROTOCOL="http"
                 if [[ -n $(kubectl get ingress keycloak-app) ]]; then
                     URL=$(kubectl get ingress keycloak-app | grep keycloak-app | awk '{print $3}')
-                    echo "${PREFER_PROTOCOL}://${URL}:${NODEPORT}"
-                    eval "${RUN} ${PREFER_PROTOCOL}://${URL}:${NODEPORT}"
+                    echo "${PREFER_PROTOCOL}://${URL}:${PORT}"
+                    eval "${RUN} ${PREFER_PROTOCOL}://${URL}:${PORT}"
+                fi
+            ;;
+            get-url)
+                find=$(kubectl get ingress | grep keycloak-app || echo "")
+                if [[ -n ${find} ]]; then
+                    URL=$(kubectl get ingress keycloak-app | grep keycloak-app | awk '{print $3}')
+                    echo "${PREFER_PROTOCOL}://${URL}:${PORT}"
+                    eval "${RUN} ${PREFER_PROTOCOL}://${URL}:${PORT}"
                 else
-                    echo -e "${PREFER_PROTOCOL}://${LOCAL_ADDRESS}:${NODEPORT}"
-                    eval "${RUN} ${PREFER_PROTOCOL}://${LOCAL_ADDRESS}:${NODEPORT}"
+                    NODEPORT=$(kubectl get svc keycloak-app -o jsonpath="{.spec.ports[0].nodePort}")
+                    echo "${PREFER_PROTOCOL}://${LOCAL_ADDRESS}:${NODEPORT}"
                 fi
             ;;
             h | help | ? | *)
                 logKill "supporting open: [postgresql, standalone]"
                 scripts/keycloak.sh --help
+            ;;
+        esac
+    ;;
+    ssl)
+        # $1 ex: keycloak.${LOCAL_ADDRESS}.nip.io
+        # $2 ex: tls-keycloak
+        # $3 ex: cert-keycloak
+        case $2 in
+            i | install)
+                LOCAL_ADDRESS=$(kubectl config view -o jsonpath="{.clusters[0].cluster.server}" | cut -d"/" -f3 | cut -d":" -f1)
+                createCertKey keycloak.${LOCAL_ADDRESS}.nip.io keycloak
+                kubectl create secret tls tls-keycloak --key config/cert-keycloak.key --cert config/cert-keycloak.crt
+            ;;
+            u | uninstall)
+                kubectl delete secret tls-keycloak
+                rm config/cert-keycloak.key
+                rm config/cert-keycloak.crt
             ;;
         esac
     ;;

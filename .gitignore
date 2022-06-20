@@ -1,5 +1,5 @@
 
-.env
+config/cert-*
 config/kubeconfig.yaml
 
 k8s.*

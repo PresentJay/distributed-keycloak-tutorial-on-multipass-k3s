@@ -205,7 +205,7 @@ checkStatus() {
                 ;;
             esac
             if [[ ${state} = $3 ]]; then
-                info "'$1/$2' is now [${state}] state."
+                logInfo "'$1/$2' is now [${state}] state."
                 return ${TRUE}
             fi
             echo "Waiting for '$1/$2' state: [${state}] => to be [$3] (${ITER}/${ITERATION_LIMIT} trials)"
@@ -233,4 +233,43 @@ getObjectNameByAppname() {
     else
         logKill "can't find $1/$2"
     fi
+}
+
+# $1: pvc name
+# $2: storageclass name
+# $3: pvc amount (GB unit)
+createPVC() {
+    cat <<EOF | kubectl apply -f -
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: $1
+spec:
+  accessModes:
+    - ReadWriteMany
+  storageClassName: $2
+  resources:
+    requests:
+      storage: $3Gi
+EOF
+}
+
+
+#################################
+#### Certification Functions ####
+#################################
+
+# $1 : domain name
+# $2 : CertKey title
+createCertKey() {
+    openssl req -new -nodes -x509 -subj "/O=IT/CN=$1" -days 3650 \
+        -keyout config/cert-$2.key -out config/cert-$2.crt
+}
+
+# $1 : domain name
+# $2 : CertKey title
+createCertPem() {
+    openssl req -newkey rsa:2048 \
+        -nodes -keyout config/cert-key-$2.pem -x509 \
+        -days 3650 -out config/cert-crt-$2.pem -subj "/CN=$1"
 }

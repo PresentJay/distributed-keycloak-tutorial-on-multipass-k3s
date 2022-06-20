@@ -100,12 +100,26 @@ case $(checkOpt iupr $@) in
             ITER=$(( ITER+1 ))
         done
     ;;
+    get-token)
+        curl -k -X POST $(scripts/keycloak.sh --open get-url)/auth/admin/realms/K8S-TEST/protocol/openid-connect/token \
+            -d grand_type=password -d client_id=kubernetes-client -d username=Etri-jhj -d password=etri -d scope=openid
+    ;;
+    get-localhost-ssl)
+        createCertPem localhost localhost
+    ;;
+    delete-localhost-ssl)
+        rm config/cert-crt-localhost.pem
+        rm config/cert-key-localhost.pem
+    ;;
     h | help | ? | *)
         logHelpHead "scripts/cluster.sh"
         logHelpContent i install "install clusters"
         logHelpContent u uninstall "uninstall clusters"
         logHelpContent p pause "pause clusters"
         logHelpContent r resume "resume paused clusters"
+        logHelpContent get-token "get k8s-keycloak token"
+        logHelpContent get-localhost-ssl "create ssl key of localhost"
+        logHelpContent delete-localhost-ssl "delete ssl key of localhost"
         logHelpTail
     ;;
 esac
