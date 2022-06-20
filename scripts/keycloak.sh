@@ -33,40 +33,73 @@ case $(checkOpt iublx $@) in
             ;;
             db | postgres | postgresql)
                 createPVC keycloak-postgresql longhorn 5
-                createCertPem keycloak.*.nip.io keycloak
-                createPVC keycloak-app longhorn 5
+                # createCertPem localhost keycloak
+                # createPVC keycloak-app longhorn 1
                 kubectl apply -f objects/postgresql.yaml
-                sleep 8
-                find=$(getObjectNameByAppname pod keycloak-postgresql) && \
-                    checkStatus pod ${find} Running && \
-                    kubectl cp config/cert-crt-keycloak.pem ${find}:/auth/keycloak-crt.pem && \
-                    kubectl cp config/cert-key-keycloak.pem ${find}:/auth/keycloak-key.pem && \
-                    rm /config/cert-crt-keycloak.pem
-                    rm /config/cert-key-keycloak.pem
+                sleep 20
+                scripts/keycloak.sh -l db
+                # find=$(getObjectNameByAppname pod keycloak-postgresql) && \
+                #     checkStatus pod ${find} Running && \
+                #     kubectl cp config/cert-crt-keycloak.pem ${find}:/auth/keycloak-crt.pem && \
+                #     kubectl cp config/cert-key-keycloak.pem ${find}:/auth/keycloak-key.pem && \
+                #     rm config/cert-crt-keycloak.pem config/cert-key-keycloak.pem
             ;;
             standalone)
-                kubectl apply -f objects/keycloak.yaml
-                sleep 8
-                find=$(getObjectNameByAppname pod keycloak-app) && \
+                # kubectl apply -f objects/keycloak.yaml
+                # sleep 20
+                # find=$(getObjectNameByAppname pod keycloak-app) && \
+                #     scripts/keycloak.sh -l standalone
+                kubectl apply -f objects/keycloak-dev.yaml
+                sleep 20
+                find=$(getObjectNameByAppname pod keycloak-dev) && \
                     scripts/keycloak.sh -l standalone
             ;;
             ingress)
                 LOCAL_ADDRESS=$(kubectl config view -o jsonpath="{.clusters[0].cluster.server}" | cut -d"/" -f3 | cut -d":" -f1)
-                cat <<EOF | kubectl apply -f -
+#                 cat <<EOF | kubectl apply -f -
+# apiVersion: networking.k8s.io/v1
+# kind: Ingress
+# metadata:
+#   name: keycloak-app
+#   annotations:
+#     kubernetes.io/tls-acme: "true"
+#     kubernetes.io/ingress.class: "nginx"
+#     ingress.kubernetes.io/force-ssl-redirect: "true"
+#     nginx.ingress.kubernetes.io/backend-protocol: "HTTPS"
+#     nginx.ingress.kubernetes.io/proxy-buffer-size: "12k"
+# spec:
+#   tls:
+#     - hosts:
+#       - keycloak.${LOCAL_ADDRESS}.nip.io
+#   rules:
+#     - host: keycloak.${LOCAL_ADDRESS}.nip.io
+#       http:
+#         paths:
+#         - path: /
+#           pathType: Prefix
+#           backend:
+#             service:
+#               name: keycloak-app
+#               port:
+#                 number: 8443
+#         - path: /auth
+#           pathType: Prefix
+#           backend:
+#             service:
+#               name: keycloak-app
+#               port:
+#                 number: 8443
+# EOF
+cat <<EOF | kubectl apply -f -
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: keycloak-app
+  name: keycloak-dev
   annotations:
-    kubernetes.io/tls-acme: "true"
     kubernetes.io/ingress.class: "nginx"
-    ingress.kubernetes.io/force-ssl-redirect: "true"
-    nginx.ingress.kubernetes.io/backend-protocol: "HTTPS"
+    nginx.ingress.kubernetes.io/backend-protocol: "HTTP"
     nginx.ingress.kubernetes.io/proxy-buffer-size: "12k"
 spec:
-  tls:
-    - hosts:
-      - keycloak.${LOCAL_ADDRESS}.nip.io
   rules:
     - host: keycloak.${LOCAL_ADDRESS}.nip.io
       http:
@@ -75,16 +108,16 @@ spec:
           pathType: Prefix
           backend:
             service:
-              name: keycloak-app
+              name: keycloak-dev
               port:
-                number: 8443
+                number: 8080
         - path: /auth
           pathType: Prefix
           backend:
             service:
-              name: keycloak-app
+              name: keycloak-dev
               port:
-                number: 8443
+                number: 8080
 EOF
             ;;
             h | help | ? | *)
@@ -108,16 +141,21 @@ EOF
                 find=$(getObjectNameByAppname replicaset keycloak-postgresql) && \
                     deleteSequence replicaset ${find}
                 deleteSequence pvc keycloak-postgresql
-                deleteSequence pvc keycloak-app
+                # deleteSequence pvc keycloak-app
             ;;
             standalone)
-                deleteSequence service keycloak-app
-                deleteSequence deployment keycloak-app
-                find=$(getObjectNameByAppname pod keycloak-app) && \
+                # deleteSequence service keycloak-app
+                # deleteSequence deployment keycloak-app
+                # find=$(getObjectNameByAppname pod keycloak-app) && \
+                #     deleteSequence pod ${find}
+                deleteSequence service keycloak-dev
+                deleteSequence deployment keycloak-dev
+                find=$(getObjectNameByAppname pod keycloak-dev) && \
                     deleteSequence pod ${find}
             ;;
             ingress)
-                deleteSequence ingress keycloak-app
+                # deleteSequence ingress keycloak-app
+                deleteSequence ingress keycloak-dev
             ;;
             h | help | ? | *)
                 logKill "supporting uninstallations: [config, postgresql, standalone, ingress]"
@@ -139,8 +177,10 @@ EOF
             ;;
             standalone)
                 logInfo "if you want to pause watch, Run \"Ctrl+C\""
-                kubectl get service keycloak-app
-                kubectl get deployment keycloak-app -w
+                # kubectl get service keycloak-app
+                # kubectl get deployment keycloak-app -w
+                kubectl get service keycloak-dev
+                kubectl get deployment keycloak-dev -w
             ;;
             h | help | ? | *)
                 logKill "supporting watch: [config, postgresql, standalone]"
@@ -151,14 +191,18 @@ EOF
     l | log)
         case $2 in
             db | postgres | postgresql)
-                getObjectNameByAppname pod keycloak-postgresql && \
+                find=$(getObjectNameByAppname pod keycloak-postgresql) && \
+                    checkStatus pod ${find} Running && \
                     logInfo "if you want to pause watch, Run \"Ctrl+C\"" && \
-                    kubectl logs -f $(getObjectNameByAppname pod keycloak-postgresql)
+                    kubectl logs -f ${find}
             ;;
             standalone)
-                getObjectNameByAppname pod keycloak-app && \
+                # getObjectNameByAppname pod keycloak-app && \
+                #     logInfo "if you want to pause watch, Run \"Ctrl+C\"" && \
+                #     kubectl logs -f $(getObjectNameByAppname pod keycloak-app)
+                getObjectNameByAppname pod keycloak-dev && \
                     logInfo "if you want to pause watch, Run \"Ctrl+C\"" && \
-                    kubectl logs -f $(getObjectNameByAppname pod keycloak-app)
+                    kubectl logs -f $(getObjectNameByAppname pod keycloak-dev)
             ;;
             h | help | ? | *)
                 logKill "supporting watch: [postgresql, standalone]"
@@ -174,9 +218,12 @@ EOF
                     kubectl exec $(getObjectNameByAppname pod keycloak-postgresql) -it -- sh
             ;;
             standalone)
-                getObjectNameByAppname pod keycloak-app && \
+                # getObjectNameByAppname pod keycloak-app && \
+                #     logInfo "if you want to pause watch, Run \"Ctrl+C\"" && \
+                #     kubectl exec $(getObjectNameByAppname pod keycloak-app) -it -- sh
+                getObjectNameByAppname pod keycloak-dev && \
                     logInfo "if you want to pause watch, Run \"Ctrl+C\"" && \
-                    kubectl exec $(getObjectNameByAppname pod keycloak-app) -it -- sh
+                    kubectl exec $(getObjectNameByAppname pod keycloak-dev) -it -- sh
             ;;
             h | help | ? | *)
                 logKill "supporting watch: [postgresql, standalone]"
@@ -206,10 +253,17 @@ EOF
                 echo -e "\t[ACCESS-PORT]: ${NODEPORT}"
             ;;
             standalone)
-                if [[ -n $(kubectl get ingress keycloak-app) ]]; then
-                    URL=$(kubectl get ingress keycloak-app | grep keycloak-app | awk '{print $3}')
+                PREFER_PROTOCOL=http
+                IS_HTTPS=$TRUE
+                PORT=$(kubectl get svc -n ingress-nginx ingress-nginx-controller -o jsonpath="{.spec.ports[$IS_HTTPS].nodePort}")
+                if [[ -n $(kubectl get ingress keycloak-dev) ]]; then
+                    URL=$(kubectl get ingress keycloak-dev | grep keycloak-dev | awk '{print $3}')
                     echo "${PREFER_PROTOCOL}://${URL}:${PORT}"
                     eval "${RUN} ${PREFER_PROTOCOL}://${URL}:${PORT}"
+                else
+                    NODEPORT=$(kubectl get svc keycloak-dev -o jsonpath="{.spec.ports[0].nodePort}")
+                    echo -e "http://${LOCAL_ADDRESS}:${NODEPORT}"
+                    eval "${RUN} http://${LOCAL_ADDRESS}:${NODEPORT}"
                 fi
             ;;
             get-url)

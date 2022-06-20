@@ -1,0 +1,51 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: keycloak-dev
+spec:
+  selector:
+    app: keycloak-dev
+  type: NodePort
+  ports:
+  - protocol: TCP
+    port: 8080
+    targetPort: 8080
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: keycloak-dev
+  labels:
+    app: keycloak-dev
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: keycloak-dev
+  template:
+    metadata:
+      labels:
+        app: keycloak-dev
+    spec:
+      restartPolicy: Always
+      terminationGracePeriodSeconds: 60
+      containers:
+        - name: keycloak-dev
+          image: quay.io/keycloak/keycloak:18.0.0
+          imagePullPolicy: "IfNotPresent"
+          ports:
+            - protocol: TCP
+              containerPort: 8080
+          readinessProbe:
+            httpGet:
+              path: /health/ready
+              port: 8080
+              scheme: HTTP
+          env:
+            - name: JAVA_OPTS
+              value: "-Xms512m -Xmx2048m -XX:MetaspaceSize=96M -XX:MaxMetaspaceSize=256m -Djava.net.preferIPv4Stack=true -Dfile.encoding=UTF-8"
+          envFrom:
+            - configMapRef:
+                name: keycloak-config
+          args:
+            - start-dev

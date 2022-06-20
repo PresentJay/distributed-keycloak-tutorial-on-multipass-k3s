@@ -43,8 +43,6 @@ spec:
           env:
             - name: JAVA_OPTS
               value: "-Xms512m -Xmx2048m -XX:MetaspaceSize=96M -XX:MaxMetaspaceSize=256m -Djava.net.preferIPv4Stack=true -Dfile.encoding=UTF-8"
-            - name: KC_PROXY
-              value: edge
           envFrom:
             - configMapRef:
                 name: keycloak-config
@@ -52,7 +50,7 @@ spec:
           command: ["/bin/sh", "-c"]
           args:
             - |
-              bin/kc.sh start --auto-build --hostname=keycloak.192.168.64.8.nip.io \
+              bin/kc.sh start --auto-build --hostname=keycloak.192.168.64.8.nip.io --hostname-port=30977 --hostname-strict=false\
                 --https-certificate-file=/auth/keycloak-crt.pem \
                 --https-certificate-key-file=/auth/keycloak-key.pem
           volumeMounts:
