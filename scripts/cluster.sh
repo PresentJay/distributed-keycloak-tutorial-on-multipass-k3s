@@ -55,7 +55,7 @@ case $(checkOpt iupr $@) in
                     INSTALL_K3S_VERSION=${K3S_VERSION} K3S_URL=\"${K3S_URL_FULL}\" K3S_TOKEN=\"${K3S_TOKEN}\" sh -"
             fi
             
-            success "node${ITER} is set for k3s"
+            logSuccess "node${ITER} is set for k3s"
             ITER=$(( ITER+1 ))
         done
         case $_OS_ in
@@ -101,8 +101,17 @@ case $(checkOpt iupr $@) in
         done
     ;;
     get-token)
-        curl -k -X POST $(scripts/keycloak.sh --open get-url)/auth/admin/realms/K8S-TEST/protocol/openid-connect/token \
-            -d grand_type=password -d client_id=kubernetes-client -d username=Etri-jhj -d password=etri -d scope=openid
+        if [[ $# -eq 1 ]]; then
+            logKill "give me second parameter: realmname"
+        elif [[ $# -eq 2 ]]; then
+            logKill "give me third parameter: clientname"
+        elif [[ $# -eq 3 ]]; then
+            logKill "give me fourth parameter: username (password default)"
+        elif [[ $# -eq 4 ]]; then
+            curl -k -X POST $(scripts/keycloak.sh --open get-url)/realms/$2/protocol/openid-connect/token \
+                -d grant_type=password -d client_id=$3 -d username=$4 -d password=password -d scope=openid \
+                -H "Content-type: application/x-www-form-urlencoded; charset=UTF-8"
+        fi
     ;;
     get-localhost-ssl)
         createCertPem localhost localhost

@@ -267,13 +267,25 @@ EOF
                 fi
             ;;
             get-url)
-                find=$(kubectl get ingress | grep keycloak-app || echo "")
+                # find=$(kubectl get ingress | grep keycloak-app || echo "")
+                # if [[ -n ${find} ]]; then
+                #     URL=$(kubectl get ingress keycloak-app | grep keycloak-app | awk '{print $3}')
+                #     echo "${PREFER_PROTOCOL}://${URL}:${PORT}"
+                #     eval "${RUN} ${PREFER_PROTOCOL}://${URL}:${PORT}"
+                # else
+                #     NODEPORT=$(kubectl get svc keycloak-app -o jsonpath="{.spec.ports[0].nodePort}")
+                #     echo "${PREFER_PROTOCOL}://${LOCAL_ADDRESS}:${NODEPORT}"
+                # fi
+                PREFER_PROTOCOL=http
+                IS_HTTPS=$TRUE
+                PORT=$(kubectl get svc -n ingress-nginx ingress-nginx-controller -o jsonpath="{.spec.ports[$IS_HTTPS].nodePort}")
+                find=$(kubectl get ingress | grep keycloak-dev || echo "")
                 if [[ -n ${find} ]]; then
-                    URL=$(kubectl get ingress keycloak-app | grep keycloak-app | awk '{print $3}')
+                    URL=$(kubectl get ingress keycloak-dev | grep keycloak-dev | awk '{print $3}')
                     echo "${PREFER_PROTOCOL}://${URL}:${PORT}"
                     eval "${RUN} ${PREFER_PROTOCOL}://${URL}:${PORT}"
                 else
-                    NODEPORT=$(kubectl get svc keycloak-app -o jsonpath="{.spec.ports[0].nodePort}")
+                    NODEPORT=$(kubectl get svc keycloak-dev -o jsonpath="{.spec.ports[0].nodePort}")
                     echo "${PREFER_PROTOCOL}://${LOCAL_ADDRESS}:${NODEPORT}"
                 fi
             ;;

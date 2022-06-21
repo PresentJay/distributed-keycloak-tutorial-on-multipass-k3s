@@ -13,6 +13,7 @@ checkPrerequisite kubectl
 case $(checkOpt iub $@) in
     b | bootstrap)
         scripts/registry.sh -i ingress-nginx
+        scripts/registry.sh -i cert-manager
         scripts/registry.sh -i longhorn
         scripts/registry.sh -i k8s-dashboard
         logInfo "please run scripts/registry.sh --set-ingress k8s-dashboard after k8s-dashboard is fully installed."
@@ -57,8 +58,11 @@ case $(checkOpt iub $@) in
                     --version ${K8S_DASHBOARD_VERSION} \
                     --set=extraArgs="{--token-ttl=0}"
             ;;
+            cert-manager)
+                kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.8.0/cert-manager.yaml
+            ;;
             h | help | ? | *)
-                logKill "supporting registries: [ingress-nginx], [longhorn], [k8s-dashboard]"
+                logKill "supporting registries: [ingress-nginx], [longhorn], [k8s-dashboard], [cert-manager]"
                 scripts/registry.sh --help
             ;;
         esac
@@ -80,8 +84,11 @@ case $(checkOpt iub $@) in
                 helm uninstall kubernetes-dashboard
                 kubectl delete namespace kubernetes-dashboard
             ;;
+            cert-manager)
+                kubectl delete -f https://github.com/cert-manager/cert-manager/releases/download/v1.8.0/cert-manager.yaml
+            ;;
             h | help | ? | *)
-                logKill "supporting registries: [ingress-nginx], [longhorn], [k8s-dashboard]"
+                logKill "supporting registries: [ingress-nginx], [longhorn], [k8s-dashboard], [cert-manager]"
                 scripts/registry.sh --help
             ;;
         esac

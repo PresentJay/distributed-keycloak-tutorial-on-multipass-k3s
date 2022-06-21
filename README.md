@@ -12,6 +12,17 @@ check help messages: `scripts/cluster.sh`, `scripts/registry.sh`
 
 1. `scripts/cluster.sh --install`
 2. `scripts/registry.sh --bootstrap`
+3. set ingress of registries
+   1. `scripts/registry.sh --set-ingress k8s-dashboard`
+      - in zsh/bash/sh: run `k8s` or `./k8s.sh`
+   2. `scripts/registry.sh --set-ingress longhorn`
+      - in zsh/bash/sh: run `longhorn` or `./longhorn.sh`
+4. keycloak installation
+   1. `scripts/keycloak.sh --install config`
+   2. `scripts/keycloak.sh --install db`
+      - get Database Connection Info: `./scripts/keycloak.sh --open postgresql`
+   3. `scripts/keycloak.sh --install standalone`
+      - get Keycloak URL: `./scripts/keycloak.sh --open standalone`
 
 # cluster configuration & test suites
 - 3 nodes : scaling nodes suite
