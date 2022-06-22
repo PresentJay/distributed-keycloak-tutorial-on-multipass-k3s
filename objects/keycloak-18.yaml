@@ -30,14 +30,14 @@ spec:
       terminationGracePeriodSeconds: 60
       containers:
         - name: keycloak-app
-          image: jboss/keycloak:11.0.2
+          image: quay.io/keycloak/keycloak:18.0.0
           imagePullPolicy: "IfNotPresent"
           ports:
             - protocol: TCP
               containerPort: 8443
           readinessProbe:
             httpGet:
-              path: /auth/realms/master
+              path: /health/ready
               port: 8443
               scheme: HTTPS
           env:
@@ -46,3 +46,18 @@ spec:
           envFrom:
             - configMapRef:
                 name: keycloak-config
+          workingDir: /opt/keycloak
+          command: ["/bin/sh", "-c"]
+          args:
+            - |
+              bin/kc.sh start --auto-build --hostname=keycloak.192.168.64.8.nip.io --hostname-port=30977 --hostname-strict=false\
+                --https-certificate-file=/auth/keycloak-crt.pem \
+                --https-certificate-key-file=/auth/keycloak-key.pem
+          volumeMounts:
+            - mountPath: /auth
+              name: keycloak-app
+              subPath: auth
+      volumes:
+      - name: keycloak-app
+        persistentVolumeClaim:
+          claimName: keycloak-app

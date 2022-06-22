@@ -108,7 +108,7 @@ case $(checkOpt iupr $@) in
         elif [[ $# -eq 3 ]]; then
             logKill "give me fourth parameter: username (password default)"
         elif [[ $# -eq 4 ]]; then
-            curl -k -X POST $(scripts/keycloak.sh --open get-url)/realms/$2/protocol/openid-connect/token \
+            curl -k -X POST $(scripts/keycloak.sh --open get-url)/auth/realms/$2/protocol/openid-connect/token \
                 -d grant_type=password -d client_id=$3 -d username=$4 -d password=password -d scope=openid
         fi
     ;;
