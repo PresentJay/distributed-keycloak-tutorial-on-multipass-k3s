@@ -97,7 +97,6 @@ metadata:
   name: keycloak-dev
   annotations:
     kubernetes.io/ingress.class: "nginx"
-    nginx.ingress.kubernetes.io/backend-protocol: "HTTP"
     nginx.ingress.kubernetes.io/proxy-buffer-size: "12k"
 spec:
   rules:
@@ -105,13 +104,6 @@ spec:
       http:
         paths:
         - path: /
-          pathType: Prefix
-          backend:
-            service:
-              name: keycloak-dev
-              port:
-                number: 8080
-        - path: /auth
           pathType: Prefix
           backend:
             service:
@@ -278,19 +270,13 @@ EOF
                 # fi
                 PREFER_PROTOCOL=http
                 IS_HTTPS=$TRUE
+                URL=$(kubectl get ingress keycloak-dev | grep keycloak-dev | awk '{print $3}')
                 PORT=$(kubectl get svc -n ingress-nginx ingress-nginx-controller -o jsonpath="{.spec.ports[$IS_HTTPS].nodePort}")
-                find=$(kubectl get ingress | grep keycloak-dev || echo "")
-                if [[ -n ${find} ]]; then
-                    URL=$(kubectl get ingress keycloak-dev | grep keycloak-dev | awk '{print $3}')
-                    echo "${PREFER_PROTOCOL}://${URL}:${PORT}"
-                    eval "${RUN} ${PREFER_PROTOCOL}://${URL}:${PORT}"
-                else
-                    NODEPORT=$(kubectl get svc keycloak-dev -o jsonpath="{.spec.ports[0].nodePort}")
-                    echo "${PREFER_PROTOCOL}://${LOCAL_ADDRESS}:${NODEPORT}"
-                fi
+                # NODEPORT=$(kubectl get svc keycloak-dev -o jsonpath="{.spec.ports[0].nodePort}")
+                echo "${PREFER_PROTOCOL}://${URL}:${PORT}"
             ;;
             h | help | ? | *)
-                logKill "supporting open: [postgresql, standalone]"
+                logKill "supporting open: [postgresql, standalone, get-url]"
                 scripts/keycloak.sh --help
             ;;
         esac
@@ -317,7 +303,6 @@ EOF
         logHelpContent i install "install keycloak"
         logHelpContent u uninstall "uninstall keycloak"
         logHelpContent l log "show log of keycloak"
-        logHelpContent set-ingress "set ingress of pod"
         logHelpContent watch "watch status of pod"
         logHelpTail
     ;;

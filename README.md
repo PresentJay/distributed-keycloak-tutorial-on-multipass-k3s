@@ -22,7 +22,8 @@ check help messages: `scripts/cluster.sh`, `scripts/registry.sh`
    2. `scripts/keycloak.sh --install db`
       - get Database Connection Info: `./scripts/keycloak.sh --open postgresql`
    3. `scripts/keycloak.sh --install standalone`
-      - get Keycloak URL: `./scripts/keycloak.sh --open standalone`
+      - set keycloak Ingress: `./scripts/keycloak.sh -i ingress`
+      - get Keycloak URL (after set Ingress): `./scripts/keycloak.sh --open standalone`
 
 # cluster configuration & test suites
 - 3 nodes : scaling nodes suite

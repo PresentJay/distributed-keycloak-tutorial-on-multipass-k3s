@@ -61,8 +61,12 @@ case $(checkOpt iub $@) in
             cert-manager)
                 kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.8.0/cert-manager.yaml
             ;;
+            kube-oidc-proxy)
+                helm upgrade --install $2 objects/charts/$2 \
+                    --values objects/$2-value.yml
+            ;;
             h | help | ? | *)
-                logKill "supporting registries: [ingress-nginx], [longhorn], [k8s-dashboard], [cert-manager]"
+                logKill "supporting registries: [ingress-nginx], [longhorn], [k8s-dashboard], [cert-manager], [kube-oidc-proxy]"
                 scripts/registry.sh --help
             ;;
         esac
@@ -87,8 +91,11 @@ case $(checkOpt iub $@) in
             cert-manager)
                 kubectl delete -f https://github.com/cert-manager/cert-manager/releases/download/v1.8.0/cert-manager.yaml
             ;;
+            kube-oidc-proxy)
+                helm uninstall kube-oidc-proxy
+            ;;
             h | help | ? | *)
-                logKill "supporting registries: [ingress-nginx], [longhorn], [k8s-dashboard], [cert-manager]"
+                logKill "supporting registries: [ingress-nginx], [longhorn], [k8s-dashboard], [cert-manager], [kube-oidc-proxy]"
                 scripts/registry.sh --help
             ;;
         esac

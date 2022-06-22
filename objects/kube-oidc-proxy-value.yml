@@ -1,0 +1,10 @@
+oidc:
+  clientId: kube-oidc-proxy
+  issuerUrl: http://keycloak.192.168.64.8.nip.io:30245/realms/k8s-test
+  usernameClaim: sub
+
+extraArgs:
+  v: 10
+
+ingress:
+  enabled: false
