@@ -50,14 +50,13 @@ spec:
           command: ["/bin/sh", "-c"]
           args:
             - |
-              bin/kc.sh start --auto-build --hostname=keycloak.192.168.64.8.nip.io --hostname-port=30977 --hostname-strict=false\
-                --https-certificate-file=/auth/keycloak-crt.pem \
-                --https-certificate-key-file=/auth/keycloak-key.pem
+              bin/kc.sh start --auto-build --hostname=keycloak.192.168.64.8.nip.io --hostname-port=30458
           volumeMounts:
-            - mountPath: /auth
-              name: keycloak-app
-              subPath: auth
+            - name: keycloak-tls
+              mountPath: "/cert/keycloak"
+              readOnly: true
       volumes:
-      - name: keycloak-app
-        persistentVolumeClaim:
-          claimName: keycloak-app
+        - name: keycloak-tls
+          secret:
+            secretName: keycloak-secret
+            optional: false

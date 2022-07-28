@@ -81,7 +81,7 @@ case $(checkOpt iupr $@) in
         ITER=1
         while [[ ${ITER} -le ${CLUSTER_NODE_AMOUNT} ]]; do
             multipass delete node${ITER} -p &
-            ITER=$(( ITER-1 ))
+            ITER=$(( ITER+1 ))
         done
     ;;
     p | pause)
@@ -109,7 +109,8 @@ case $(checkOpt iupr $@) in
             logKill "give me fourth parameter: username (password default)"
         elif [[ $# -eq 4 ]]; then
             curl -k -X POST $(scripts/keycloak.sh --open get-url)/auth/realms/$2/protocol/openid-connect/token \
-                -d grant_type=password -d client_id=$3 -d username=$4 -d password=password -d scope=openid
+                -d grant_type=password -d client_id=$3 -d username=$4 -d password=password -d scope=openid \
+                -d client_secret=5d14eb5a-91f1-417d-b540-3a850e1fd183
         fi
     ;;
     get-localhost-ssl)
@@ -118,6 +119,9 @@ case $(checkOpt iupr $@) in
     delete-localhost-ssl)
         rm config/cert-crt-localhost.pem
         rm config/cert-key-localhost.pem
+    ;;
+    create-pem)
+        createCertPem $2 $3
     ;;
     h | help | ? | *)
         logHelpHead "scripts/cluster.sh"

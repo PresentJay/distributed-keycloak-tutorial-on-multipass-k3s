@@ -5,7 +5,7 @@
 source ./scripts/env.sh
 source ./scripts/common.sh
 
-# Prerequisite 검사 (multipass, kubectl, helm)
+# Prerequisite 검사 (kubectl, helm)
 checkPrerequisite helm
 checkPrerequisite kubectl
 
@@ -60,6 +60,7 @@ case $(checkOpt iub $@) in
             ;;
             cert-manager)
                 kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.8.0/cert-manager.yaml
+                kubectl apply -f objects/cert-selfissuer.yaml
             ;;
             kube-oidc-proxy)
                 helm upgrade --install $2 objects/charts/$2 \
@@ -227,8 +228,33 @@ EOF
 
                 [[ ${OS_name} -eq "linux" ]] && cp k8s.${EXP} /usr/local/bin/k8s
             ;;
+            kube-oidc-proxy)
+                LOCAL_ADDRESS=$(kubectl config view -o jsonpath="{.clusters[0].cluster.server}" | cut -d"/" -f3 | cut -d":" -f1)
+                cat <<EOF | kubectl apply -f -
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: kube-oidc-proxy
+  annotations:
+    kubernetes.io/ingress.class: nginx
+    cert-manager.io/cluster-issuer: letsencrypt-production
+    nginx.ingress.kubernetes.io/backend-protocol: HTTPS
+spec:
+  rules:
+    - host: k8s.sso.${LOCAL_ADDRESS}.nip.io
+      http:
+        paths:
+        - path: /
+          pathType: Prefix
+          backend:
+            service:
+              name: kube-oidc-proxy
+              port:
+                name: https
+EOF
+            ;;
             h | help | ? | *)
-                logKill "supporting ingresses: [longhorn], [k8s-dashboard]"
+                logKill "supporting ingresses: [longhorn], [k8s-dashboard], [kube-oidc-proxy]"
                 scripts/registry.sh --help
             ;;
         esac

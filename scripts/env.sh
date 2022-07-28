@@ -9,6 +9,7 @@ envList=$(grep -v '^#' ${ENV_LOC} | xargs)
 
 # Export env vars
 for ITER in ${envList}; do
+    # echo ${ITER}
     export ${ITER}
 done
 

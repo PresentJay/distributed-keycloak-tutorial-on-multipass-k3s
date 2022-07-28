@@ -1,6 +1,7 @@
 
 config/cert-*
-config/kubeconfig.yaml
+config/kubeconfig.*
 
 k8s.*
 longhorn.*
+keycloak.*
