@@ -323,18 +323,18 @@ EOF
     ;;
     ssl)
         # $1 ex: keycloak.${LOCAL_ADDRESS}.nip.io
-        # $2 ex: tls-keycloak
+        # $2 ex: keycloak-secret
         # $3 ex: cert-keycloak
         case $2 in
             i | install)
                 LOCAL_ADDRESS=$(kubectl config view -o jsonpath="{.clusters[0].cluster.server}" | cut -d"/" -f3 | cut -d":" -f1)
-                createCertKey keycloak.${LOCAL_ADDRESS}.nip.io keycloak
-                kubectl create secret tls tls-keycloak --key config/cert-keycloak.key --cert config/cert-keycloak.crt
+                createCertPem keycloak.${LOCAL_ADDRESS}.nip.io keycloak
+                kubectl create secret tls keycloak-secret --key config/cert-key-keycloak.key --cert config/cert-crt-keycloak.crt
             ;;
             u | uninstall)
-                kubectl delete secret tls-keycloak
-                rm config/cert-keycloak.key
-                rm config/cert-keycloak.crt
+                kubectl delete secret keycloak-secret
+                rm config/cert-key-keycloak.key
+                rm config/cert-crt-keycloak.crt
             ;;
             getPem)
                 LOCAL_ADDRESS=$(kubectl config view -o jsonpath="{.clusters[0].cluster.server}" | cut -d"/" -f3 | cut -d":" -f1)

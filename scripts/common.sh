@@ -255,6 +255,60 @@ EOF
 }
 
 
+createService() {
+    cat <<EOF | kubectl apply -f -
+apiVersion: v1
+kind: Service
+metadata:
+  name: $1
+spec:
+  ports:
+  - port: 80
+    targetPort: $2
+    
+  selector:
+    app: $1
+EOF
+}
+
+
+createJupyter() {
+    cat <<EOF | kubectl apply -f -
+apiVersion: v1
+kind: Pod
+metadata:
+  name: $1
+  labels:
+    app: $1
+spec:
+  initContainers:
+    - name: git-clone
+      image: alpine/git
+      args:
+          - clone
+          - --single-branch
+          - --
+          - https://github.com/kubernetes-client/python.git
+          - /data
+      volumeMounts:
+      - mountPath: /data
+        name: $1-volume
+  containers:
+    - name: $1
+      image: skippbox/jupyter:0.0.3
+      ports:
+      - containerPort: $2
+        protocol: TCP
+      volumeMounts:
+        - mountPath: /root
+          name: $1-volume
+  volumes:
+  - name: $1-volume
+    emptyDir: {}
+EOF
+}
+
+
 #################################
 #### Certification Functions ####
 #################################
@@ -273,3 +327,4 @@ createCertPem() {
         -nodes -keyout config/cert-key-$2.pem -x509 \
         -days 3650 -out config/cert-crt-$2.pem -subj "/CN=$1"
 }
+

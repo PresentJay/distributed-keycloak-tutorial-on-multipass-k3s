@@ -253,6 +253,45 @@ spec:
                 name: https
 EOF
             ;;
+            jupyter-hub | jh | hub)
+              LOCAL_ADDRESS=$(kubectl config view -o jsonpath="{.clusters[0].cluster.server}" | cut -d"/" -f3 | cut -d":" -f1)
+              cat <<EOF | kubectl apply -f -
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: hub
+  annotations:
+    kubernetes.io/ingress.class: nginx
+    nginx.ingress.kubernetes.io/backend-protocol: HTTPS
+spec:
+  rules:
+    - host: jupyter.hub.${LOCAL_ADDRESS}.nip.io
+      http:
+        paths:
+        - path: /
+          pathType: Prefix
+          backend:
+            service:
+              name: proxy-public
+              port:
+                name: https
+EOF
+                
+                [ -e longhorn.${EXP} ] && rm longhorn.${EXP}
+
+                DEST="${PREFER_PROTOCOL}://jupyter.hub.${LOCAL_ADDRESS}.nip.io:${PORT}"
+
+                [[ ! -e hub.${EXP} ]] && cat << EOF > hub.${EXP}
+#!/bin/bash
+echo "${DEST}"
+${RUN} ${DEST}
+EOF
+
+                chmod +x hub.${EXP}
+                chmod 777 hub.${EXP}
+
+                [[ ${OS_name} -eq "linux" ]] && cp hub.${EXP} /usr/local/bin/hub
+            ;;
             h | help | ? | *)
                 logKill "supporting ingresses: [longhorn], [k8s-dashboard], [kube-oidc-proxy]"
                 scripts/registry.sh --help
